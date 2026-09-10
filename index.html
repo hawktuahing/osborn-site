@@ -54,8 +54,8 @@ h1,h2,.kick,.num,.val h3,.logo,.tile h3,.quote q,.fwm{font-family:'Space Grotesk
 .btn .arrow{transition:.2s}
 /* section base */
 .sec{min-height:100vh;position:relative;display:flex;align-items:center;background:var(--bg)}
-.sec.photo{overflow:hidden}
-.sec.photo .bg{position:absolute;inset:0;width:100%;height:104%;top:-2%;object-fit:cover;object-position:center;background:#fff;will-change:transform}
+.sec.photo{overflow:hidden;min-height:0;aspect-ratio:16/9}
+.sec.photo .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;background:#fff;will-change:transform}
 
 .overlay{position:absolute;inset:0;display:flex;align-items:center;z-index:2}
 .txt{width:31%}
@@ -241,7 +241,7 @@ const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.t
 document.querySelectorAll(".sec,.footer").forEach(el=>io.observe(el));
 /* parallax figures */
 const pxEls=[...document.querySelectorAll('.sec.photo .bg')];
-function parallax(){const vh=innerHeight;for(const el of pxEls){const r=el.parentElement.getBoundingClientRect();const rel=((r.top+r.height/2)-vh/2)/vh;const zoom=(1.14-Math.min(Math.abs(rel),1)*0.12).toFixed(3);el.style.transform='translateY('+(rel*-38).toFixed(1)+'px) scale('+zoom+')';}}
+function parallax(){const vh=innerHeight;for(const el of pxEls){const r=el.parentElement.getBoundingClientRect();const rel=((r.top+r.height/2)-vh/2)/vh;const zoom=(1+Math.min(Math.abs(rel),1)*0.04).toFixed(3);el.style.transform='scale('+zoom+')';}}
 /* wave-bar bump + progress */
 const N=64, wave=document.getElementById("wave"), bars=[];
 for(let i=0;i<N;i++){const b=document.createElement("div");b.className="bar";b.style.height="10px";wave.appendChild(b);bars.push(b);}

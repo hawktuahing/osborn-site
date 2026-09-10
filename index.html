@@ -152,7 +152,7 @@ h2{font-size:clamp(40px,4vw,62px);line-height:1.04;letter-spacing:-.01em;margin:
 
 .disc-track{position:relative}
 .disc{background:var(--dark);color:var(--darktx)}
-.disc.disc--pin{position:sticky;top:0;height:100vh;overflow:hidden}
+.disc.disc--pin{position:sticky;top:var(--navH,86px);height:calc(100vh - var(--navH,86px));overflow:hidden}
 .disc.disc--pin .disc-inner{min-height:0;align-items:start}
 .disc-bar{width:100%;height:64px;background:transparent;border:0;border-top:1px solid rgba(244,243,240,.12);
   display:flex;align-items:center;justify-content:center;gap:16px;cursor:default;color:var(--darktx);
@@ -287,7 +287,7 @@ onScrollFrame();
         inner=panel.firstElementChild,
         track=document.getElementById("discTrack"),
         reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
-  let pinned=false, full=0, scrubDist=0, holdDist=0, trackTop=0, ticking=false;
+  let pinned=false, full=0, scrubDist=0, holdDist=0, pinStart=0, ticking=false;
 
   function measure(){
     const mob = reduce || innerWidth<=768;
@@ -302,17 +302,21 @@ onScrollFrame();
       return;
     }
     pinned=true; disc.classList.add("disc--pin");
-    scrubDist=Math.round(Math.min(full+120, innerHeight*0.72));
-    holdDist=Math.round(innerHeight*0.22);
-    track.style.height=(innerHeight+scrubDist+holdDist)+"px";
-    trackTop=track.getBoundingClientRect().top+scrollY;
+    const navEl=document.querySelector(".nav");
+    const navH=Math.round(navEl ? navEl.getBoundingClientRect().bottom : 86);
+    disc.style.setProperty("--navH", navH+"px");
+    const stageH=innerHeight-navH;
+    scrubDist=Math.round(Math.min(full+120, stageH*0.8));
+    holdDist=Math.round(stageH*0.25);
+    track.style.height=(stageH+scrubDist+holdDist)+"px";
+    pinStart=track.getBoundingClientRect().top+scrollY-navH;
     render();
   }
 
   function render(){
     ticking=false;
     if(!pinned) return;
-    let p=(scrollY-trackTop)/scrubDist;
+    let p=(scrollY-pinStart)/scrubDist;
     p = p<0?0 : p>1?1 : p;
     const e=p*p*(3-2*p);                         // smoothstep ease-in-out
     panel.style.height=(e*full)+"px";

@@ -55,7 +55,7 @@ h1,h2,.kick,.num,.val h3,.logo,.tile h3,.quote q,.fwm{font-family:'Space Grotesk
 /* section base */
 .sec{min-height:100vh;position:relative;display:flex;align-items:center;background:var(--bg)}
 .sec.photo{overflow:hidden}
-.sec.photo .bg{position:absolute;inset:0;width:100%;height:104%;top:-2%;object-fit:contain;object-position:center;background:#fff;will-change:transform}
+.sec.photo .bg{position:absolute;inset:0;width:100%;height:104%;top:-2%;object-fit:cover;object-position:center;background:#fff;will-change:transform}
 
 .overlay{position:absolute;inset:0;display:flex;align-items:center;z-index:2}
 .txt{width:31%}
@@ -71,7 +71,7 @@ h2{font-size:clamp(40px,4vw,62px);line-height:1.04;letter-spacing:-.01em;margin:
 .sign .l{width:36px;height:1px;background:var(--ink)}
 /* HERO */
 .hero{height:100vh;position:relative;overflow:hidden;background:#fff}
-.hero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;background:#fff}
+.hero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;background:#fff}
 .hero h1{position:absolute;z-index:3;color:var(--ink);font-size:clamp(48px,5.4vw,104px);line-height:.92;letter-spacing:-.02em}
 .hero .t-left{left:25%;top:42%;transform:translate(-50%,-50%)}
 .hero .t-right{left:75%;top:42%;transform:translate(-50%,-50%);text-align:center}

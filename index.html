@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en" class="pl-active"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Norman Osborn — Visionary. Founder.</title><meta name="description" content="The personal site of Norman Osborn."><style>
+<!DOCTYPE html><html lang="en" class="pl-active"><head><script>try{if('scrollRestoration' in history){history.scrollRestoration='manual';}window.scrollTo(0,0);}catch(e){}</script><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Norman Osborn — Visionary. Founder.</title><meta name="description" content="The personal site of Norman Osborn."><style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=Inter:wght@400;500&display=swap');
 :root{--pad:clamp(56px,4.5vw,120px);--mx:var(--pad);--bg:#FFFFFF;--ink:#0A0A0A;--ink2:#6B6B6B;--line:#E6E4DF;--dark:#0A0A0A;--darktx:#F4F3F0}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -152,7 +152,7 @@ h2{font-size:clamp(40px,4vw,62px);line-height:1.04;letter-spacing:-.01em;margin:
 
 .disc-track{position:relative}
 .disc{background:var(--dark);color:var(--darktx)}
-.disc.disc--pin{position:sticky;top:var(--navH,86px);height:calc(100vh - var(--navH,86px));overflow:hidden}
+.disc.disc--pin{position:sticky;top:var(--navH,86px)}
 .disc.disc--pin .disc-inner{min-height:0;align-items:start}
 .disc-bar{width:100%;height:64px;background:transparent;border:0;border-top:1px solid rgba(244,243,240,.12);
   display:flex;align-items:center;justify-content:center;gap:16px;cursor:default;color:var(--darktx);
@@ -176,15 +176,14 @@ html.pl-active,html.pl-active body{overflow:hidden;height:100%}
 .status,.nav,.hero h1,.hero .hmeta{transition:opacity .8s cubic-bezier(.4,0,.2,1)}
 html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-active .hero .hmeta{opacity:0;pointer-events:none}
 #preloader{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;pointer-events:none;transition:opacity .5s ease}
-.pl-pct{display:flex;align-items:baseline;gap:.05em;font-family:'Space Grotesk',sans-serif;font-weight:200;
-  font-size:clamp(56px,11vw,168px);letter-spacing:-.02em;color:#fff;line-height:1;
-  padding:.15em .6em;border-radius:999px;
-  background:rgba(10,10,10,.28);backdrop-filter:blur(28px) saturate(1.5);-webkit-backdrop-filter:blur(28px) saturate(1.5);
-  border:1px solid rgba(255,255,255,.22);
-  box-shadow:0 20px 60px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.35),inset 0 -18px 30px -20px rgba(255,255,255,.12);
-  transition:opacity .45s ease,filter .45s ease,transform .45s ease}
-.pl-pct.pl-out{opacity:0;filter:blur(6px);transform:scale(.94)}
-.pl-sign{font-size:.4em;opacity:.65;align-self:flex-start;margin-top:.3em}
+.pl-pct{display:flex;align-items:baseline;gap:.04em;font-family:'Space Grotesk',sans-serif;font-weight:100;
+  font-size:clamp(64px,13vw,190px);letter-spacing:-.01em;line-height:1;color:rgba(255,255,255,.95);
+  background:linear-gradient(175deg,#fff 0%,#fff 40%,rgba(255,255,255,.5) 58%,rgba(255,255,255,.92) 78%,rgba(255,255,255,.6) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 20px rgba(0,0,0,.35)) drop-shadow(0 0 1px rgba(255,255,255,.5));
+  transition:opacity .5s ease,filter .5s ease,transform .5s ease}
+.pl-pct.pl-out{opacity:0;filter:blur(10px) drop-shadow(0 2px 20px rgba(0,0,0,.2));transform:scale(.92)}
+.pl-sign{font-size:.36em;opacity:.7;align-self:flex-start;margin-top:.34em}
 #plSkip{position:fixed;top:24px;right:24px;z-index:501;pointer-events:auto;
   font-family:'Inter',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#fff;
   padding:12px 20px;border-radius:999px;background:rgba(10,10,10,.28);
@@ -330,10 +329,11 @@ onScrollFrame();
     const navEl=document.querySelector(".nav");
     const navH=Math.round(navEl ? navEl.getBoundingClientRect().bottom : 86);
     disc.style.setProperty("--navH", navH+"px");
-    const stageH=innerHeight-navH;
-    scrubDist=Math.round(Math.min(full+120, stageH*0.8));
-    holdDist=Math.round(stageH*0.25);
-    track.style.height=(stageH+scrubDist+holdDist)+"px";
+    const barH=Math.round(disc.querySelector(".disc-bar").offsetHeight);
+    const maxDiscH=barH+full;
+    scrubDist=Math.round(Math.min(full+150, innerHeight*0.6));
+    holdDist=Math.round(innerHeight*0.15);
+    track.style.height=(maxDiscH+scrubDist+holdDist)+"px";
     pinStart=track.getBoundingClientRect().top+scrollY-navH;
     render();
   }
@@ -360,6 +360,8 @@ onScrollFrame();
 })();
 </script><script>
 (function(){
+  try{ if('scrollRestoration' in history) history.scrollRestoration='manual'; }catch(e){}
+  scrollTo(0,0);
   var root=document.documentElement;
   var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
   var video=document.getElementById('heroVideo');

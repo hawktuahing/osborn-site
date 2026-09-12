@@ -31,11 +31,12 @@ h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;ma
   <div id="glass"><span>skip</span><span>&#9208;</span></div>
 </div>
 <div id="panel">
-  <h1>Intro bisect — turn things off until the restart stops</h1>
+  <h1>Intro bisect — the ramp is the suspect; run it off, then on</h1>
   <label><input type="checkbox" id="cPoster" checked> poster (clip's first frame)</label>
   <label><input type="checkbox" id="cStage" checked> full-bleed cover box + height transition</label>
   <label><input type="checkbox" id="cGlass" checked> glass buttons over the clip (backdrop-filter)</label>
   <label><input type="checkbox" id="cBlob"> feed it as a blob: URL (the old way)</label>
+  <label><input type="checkbox" id="cRamp"> playbackRate ease-in 0.35&rarr;1 (the suspect)</label>
   <button id="go">Run</button>
   <div id="sum">idle</div>
   <div id="log"></div>
@@ -43,7 +44,7 @@ h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;ma
 <script>
 (function(){
   var v=document.getElementById('v'), log=document.getElementById('log'), sum=document.getElementById('sum');
-  var t0=0, last=-1, back=0, lines=[], firstPaint=null, painted=0;
+  var t0=0, last=-1, back=0, lines=[], painted=0, lastHit=-1e9;
   function st(){ return String(Math.round(performance.now()-t0)).padStart(5,' ')+'ms'; }
   function say(s,c){ lines.push('<span'+(c?' class="'+c+'"':'')+'>'+st()+'  '+s+'</span>'); log.innerHTML=lines.join('\n'); }
   ['loadstart','loadedmetadata','loadeddata','canplay','play','playing','pause','waiting','stalled',
@@ -68,8 +69,9 @@ h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;ma
     var s=sig();
     if(s){
       if(!ref && v.currentTime>0.01){ ref=s; }
-      else if(ref && v.currentTime>0.45 && diff(s,ref)<3){
-        painted++; say('PICTURE BACK AT FRAME 0  (currentTime is '+v.currentTime.toFixed(3)+')','hit'); ref=null;
+      else if(ref && v.currentTime>0.45 && diff(s,ref)<3 && performance.now()-lastHit>400){
+        painted++; lastHit=performance.now();
+        say('PICTURE BACK AT FRAME 0  (currentTime is '+v.currentTime.toFixed(3)+')','hit');
       }
     }
     sum.innerHTML='t='+v.currentTime.toFixed(2)+'s rate='+v.playbackRate.toFixed(2)+
@@ -82,14 +84,15 @@ h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;ma
     var poster=document.getElementById('cPoster').checked,
         stage=document.getElementById('cStage').checked,
         glass=document.getElementById('cGlass').checked,
-        blob=document.getElementById('cBlob').checked;
+        blob=document.getElementById('cBlob').checked,
+        ramp=document.getElementById('cRamp').checked;
     document.body.classList.toggle('plain',!stage);
     document.body.classList.toggle('noglass',!glass);
-    lines=[]; back=0; painted=0; last=-1; ref=null; t0=performance.now();
+    lines=[]; back=0; painted=0; last=-1; ref=null; lastHit=-1e9; t0=performance.now();
     var m=matchMedia('(max-width:834px)').matches;
     var url=m?'assets/m/intro.mp4':'assets/d/intro.mp4';
     var post=m?'assets/m/intro-poster.jpg':'assets/d/intro-poster.jpg';
-    say('poster='+poster+' stage='+stage+' glass='+glass+' blob='+blob);
+    say('poster='+poster+' stage='+stage+' glass='+glass+' blob='+blob+' ramp='+ramp);
     v.removeAttribute('poster'); if(poster) v.poster=post;
     fetch(url).then(function(res){
       var got=0,chunks=[],rd=res.body.getReader();
@@ -100,10 +103,12 @@ h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;ma
       say('downloaded; handing over');
       v.preload='auto'; v.src = b ? URL.createObjectURL(b) : url; v.load();
       setTimeout(function(){
-        v.playbackRate=0.35;
+        if(ramp) v.playbackRate=0.35;
         var p=v.play(); if(p&&p.catch) p.catch(function(e){ say('play() rejected '+e,'hit'); });
-        var i=0, iv=setInterval(function(){ i++; if(i>=8){clearInterval(iv);v.playbackRate=1;return;}
-          v.playbackRate=0.35+(1-Math.pow(1-i/8,3))*0.65; },88);
+        if(ramp){
+          var i=0, iv=setInterval(function(){ i++; if(i>=8){clearInterval(iv);v.playbackRate=1;say('ramp done');return;}
+            v.playbackRate=0.35+(1-Math.pow(1-i/8,3))*0.65; },88);
+        }
         requestAnimationFrame(watch);
       },260);
     }).catch(function(e){ say('fetch failed '+e,'hit'); });

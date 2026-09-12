@@ -841,7 +841,6 @@ onScrollFrame();
          steps is just as smooth for a rate change.                             */
     try{
       if(video.currentTime>0.05) video.currentTime=0;
-      video.playbackRate=0.35;
       var pr=video.play();
       /* The poster IS the clip's first frame, and iOS re-shows a poster whenever
          it has to rebuild the element's rendering surface — which is exactly the
@@ -850,13 +849,15 @@ onScrollFrame();
          way the poster has no job left, so take it away. */
       try{ video.removeAttribute('poster'); }catch(e){}
       if(pr && pr.catch) pr.catch(function(){ clearTimeout(safety); reveal(); });
-      var step=0, STEPS=8;
-      var ramp=setInterval(function(){
-        step++;
-        if(step>=STEPS){ clearInterval(ramp); video.playbackRate=1; return; }
-        var e=1-Math.pow(1-step/STEPS,3);
-        video.playbackRate=0.35+e*0.65;
-      }, 700/STEPS);
+      /* No playbackRate ease-in. It used to start at 0.35 and ramp to 1 over
+         700ms, and on-device bisecting put the fault squarely there: the picture
+         snapped back to the opening frame about 60ms after the last write to
+         playbackRate, every single run, while currentTime carried on and no
+         media event fired at all. Writing playbackRate makes iOS re-present the
+         video, and re-presenting it showed frame zero. Poster, blob source,
+         full-bleed box and the glass buttons were each ruled out first — the
+         reset survived all of them being switched off.
+         The clip already opens on a slow push-in, so it loses nothing. */
     }catch(e){ clearTimeout(safety); reveal(); }
   }
 

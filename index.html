@@ -90,6 +90,13 @@ h2{font-size:clamp(40px,4vw,62px);line-height:1.04;letter-spacing:-.01em;margin:
 /* HERO */
 .hero{height:100vh;position:relative;overflow:hidden;background:#fff}
 .hero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;background:#fff}
+/* The clip hands over to a still of its own last frame rather than sitting there
+   paused: a stopped <video> drops off the compositor's video path, which shows as
+   a twitch, and on a phone the settle would then be resizing a live video element
+   every frame. Both carry .bg, so the settle treats them identically. */
+.hero .still{opacity:0;z-index:2;transition:opacity .32s ease}
+.hero .still.on{opacity:1}
+@media(prefers-reduced-motion:reduce){.hero .still{transition:none}}
 .hero h1{position:absolute;z-index:3;color:var(--ink);font-size:clamp(48px,5.4vw,104px);line-height:.92;letter-spacing:-.02em}
 .hero .t-left{left:25%;top:42%;transform:translate(-50%,-50%)}
 .hero .t-right{left:75%;top:42%;transform:translate(-50%,-50%);text-align:center}
@@ -422,19 +429,26 @@ html.menu-open .sheet{opacity:1;visibility:visible;transform:none}
     <div class="vent"><span>Oscorp Labs</span><span>OZ Energy</span><span>Greenlight Defense</span><span>Applied AI Group</span></div>
     <a class="cta" href="#contact">Get in touch</a>
   </div>
-</div><section class="hero in" id="top"><video class="bg" id="heroVideo" muted playsinline webkit-playsinline preload="auto"
-  data-d="assets/d/intro.mp4" data-dposter="assets/d/intro-poster.jpg"
-  data-m="assets/m/intro.mp4" data-mposter="assets/m/intro-poster.jpg"></video>
-<noscript><picture><source media="(max-width:834px)" srcset="assets/m/hero-end.jpg"><img class="bg" src="assets/d/intro-poster.jpg" alt=""></picture></noscript>
-<script>/* Neither the clip nor its poster is named in the markup: the preload
-   scanner runs before any script and would start fetching the 21MB 4K file on a
-   phone regardless of what a later script did. Naming the source here, after the
-   breakpoint is known, is what keeps each device to its own media. A no-JS load
-   gets the still frame from the <noscript> above instead. */
-(function(){var v=document.getElementById('heroVideo'),m=matchMedia('(max-width:834px)').matches;
-v.poster=m?v.dataset.mposter:v.dataset.dposter;
-var s=document.createElement('source');s.type='video/mp4';s.src=m?v.dataset.m:v.dataset.d;
-v.appendChild(s);v.load();})();</script>
+</div><section class="hero in" id="top"><video class="bg" id="heroVideo" muted playsinline webkit-playsinline preload="none"></video>
+<img class="bg still" id="heroStill" alt="" aria-hidden="true">
+<noscript><picture><source media="(max-width:834px)" srcset="assets/m/hero-end.jpg"><img class="bg" src="assets/d/hero-end.jpg" alt=""></picture></noscript>
+<script>/* Nothing about the clip is named in the markup: the preload scanner runs
+   before any script and would start fetching the desktop file on a phone no matter
+   what a later script did. The breakpoint — and on desktop the screen's real pixel
+   count — decide here which clip and which still this device gets. The preloader
+   then downloads the clip itself so it can report true progress; a no-JS load gets
+   the still frame from the <noscript> above. */
+(function(){
+  var m=matchMedia('(max-width:834px)').matches;
+  var hi=!m && (screen.width*(devicePixelRatio||1))>=2200;
+  var cfg=window.__hero={
+    clip: m?'assets/m/intro.mp4' : hi?'assets/d/intro-hi.mp4' : 'assets/d/intro.mp4',
+    poster: m?'assets/m/intro-poster.jpg':'assets/d/intro-poster.jpg',
+    still: m?'assets/m/hero-end.jpg':'assets/d/hero-end.jpg'
+  };
+  var v=document.getElementById('heroVideo');v.poster=cfg.poster;
+  document.getElementById('heroStill').src=cfg.still;
+})();</script>
 <div class="hmeta a">Est. 1997</div><div class="hmeta b">40.7&deg;N / 74.0&deg;W</div>
 <div class="htext"><h1 class="t-left">Visionary.</h1><h1 class="t-right">Founder.</h1>
 <h1 class="t-bot">Force of nature.</h1></div></section><div id="preloader"><div class="pl-pct" id="plPct" aria-hidden="true"><span id="plNum">0</span><span class="pl-sign">%</span></div></div><div id="plGate"><button id="plGateBtn" type="button"><span class="br">&lt;</span>press enter<span class="br">&gt;</span></button></div><div id="plCtrls"><button id="plSound" type="button" aria-label="Pause music" aria-pressed="false"><svg class="snd-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2"/></svg><svg class="snd-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8.5 5.1v13.8L19 12z"/></svg></button><button id="plSkip" type="button" aria-label="Skip intro">Skip</button></div><audio id="plAudio" loop preload="auto" playsinline><source src="assets/shared/track.m4a" type="audio/mp4"><source src="assets/shared/track.mp3" type="audio/mpeg"></audio><section class="sec numbers" id="numbers"><div class="wrap"><div class="numhead"><div class="kick rv" data-i="02">By the numbers</div><div class="rv" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8f8c81">A record of scale</div></div>
@@ -691,19 +705,48 @@ onScrollFrame();
   var num=document.getElementById('plNum');
   var skip=document.getElementById('plSkip');
   var images=[].slice.call(document.querySelectorAll('.sec.photo img.bg'));
+  var still=document.getElementById('heroStill');
   var mq=matchMedia('(max-width:834px)');
+  var VIDEO_WEIGHT=0.88;          /* the clip really is ~88% of the bytes */
+  var vidFrac=0, blobURL=null, clipReady=false;
+
+  /* The percentage used to read video.readyState, which is the browser's own
+     guess that it could probably play through — it reaches "ready" long before
+     the file has arrived, so the number hit 100 early and then the clip stalled
+     mid-play. Downloading it here means the number is literally bytes received
+     over Content-Length, and playback runs from memory with nothing left to
+     stall on. If streaming isn't available the old path still works. */
+  function fetchClip(url){
+    if(!window.fetch||!window.ReadableStream||!window.URL||!URL.createObjectURL) return Promise.reject();
+    return fetch(url).then(function(res){
+      if(!res.ok||!res.body) throw new Error('no stream');
+      var total=+(res.headers.get('content-length')||0);
+      var got=0, chunks=[], reader=res.body.getReader();
+      return (function pump(){
+        return reader.read().then(function(r){
+          if(r.done){ vidFrac=1; return new Blob(chunks,{type:'video/mp4'}); }
+          chunks.push(r.value); got+=r.value.length;
+          if(total) vidFrac=Math.min(1,got/total);
+          return pump();
+        });
+      })();
+    });
+  }
 
   /* On the phone the clip is 9:16 while the screen is taller, so it plays edge
      to edge during the intro and then settles into its own box — the last
      frame, which is the hero, ends up whole instead of cropped at the sides.
      On the desktop the clip and the viewport are both 16:9, so this is a no-op. */
   function heroFit(){
-    if(!video||!mq.matches){ if(video) video.style.removeProperty('--vh'); return; }
-    var h=video.parentElement.clientHeight||innerHeight;
+    var hero=video&&video.parentElement;
+    if(!hero) return;
+    /* set on the section, not on the clip: the still is a sibling and has to
+       settle with it, or the handover would show the frame jump size */
+    if(!mq.matches){ hero.style.removeProperty('--vh'); return; }
+    var h=hero.clientHeight||innerHeight;
     var fit=Math.min(h,Math.round(innerWidth*16/9));
-    video.style.setProperty('--vh',(done?fit:h)+'px');
+    hero.style.setProperty('--vh',(done?fit:h)+'px');
   }
-  var VIDEO_WEIGHT=0.85;
   var done=false, playing=false, shown=0, raw=0, rafId=0;
   var t0=performance.now();
 
@@ -712,29 +755,24 @@ onScrollFrame();
   function computeRaw(){
     var d=0;
     for(var i=0;i<images.length;i++){ if(images[i].complete) d+=1; }
-    var imgFrac = images.length ? d/images.length : 1;
-    var v=1;
-    if(video){
-      var rs=video.readyState||0;
-      v=rs/4;
-      try{
-        if(video.buffered && video.buffered.length && video.duration){
-          v=Math.max(v, Math.min(1, video.buffered.end(0)/video.duration));
-        }
-      }catch(e){}
-    }
+    if(still&&still.complete) d+=1;
+    var imgFrac = (images.length+1) ? d/(images.length+1) : 1;
+    /* the last half percent is the decoder getting hold of the bytes: without
+       this the bar could reach 100 and fire the intro before the element had a
+       source at all */
+    var v = clipReady ? vidFrac : Math.min(vidFrac, 0.995);
     raw = imgFrac*(1-VIDEO_WEIGHT) + v*VIDEO_WEIGHT;
   }
 
   function tick(){
     computeRaw();
-    var elapsed=performance.now()-t0;
-    var target = elapsed>8000 ? 1 : Math.min(raw,0.985);
-    shown += (target-shown)*0.07;
-    if(target-shown<0.002) shown=target;
+    /* smoothed only enough to stop the counter flickering — it is never pushed
+       ahead of, or held back from, what has actually arrived */
+    shown += (raw-shown)*0.12;
+    if(Math.abs(raw-shown)<0.003) shown=raw;
     var p=Math.round(clamp(shown,0,1)*100);
     if(num.textContent!=='' + p) num.textContent=p;
-    if((raw>=1 && shown>0.965) || elapsed>9000){ finishLoading(); return; }
+    if(raw>=1 && shown>0.999){ finishLoading(); return; }
     rafId=requestAnimationFrame(tick);
   }
 
@@ -745,14 +783,17 @@ onScrollFrame();
     setTimeout(startVideo, 380);
   }
 
+  /* if the clip cannot play at all, stop waiting on it and rest on the still */
   if(video) video.addEventListener('error',function(){
-    video.poster = mq.matches ? 'assets/m/hero-end.jpg' : 'assets/d/intro-poster.jpg';
+    vidFrac=1; clipReady=true;
+    if(started&&!done) setTimeout(reveal, 300);
   },true);
 
   function startVideo(){
     if(playing) return; playing=true;
     if(reduce || !video){ reveal(); return; }
-    var safety=setTimeout(reveal, 14000);
+    startAudio();                       /* the soundtrack comes in with the clip */
+    var safety=setTimeout(reveal, 16000);
     video.addEventListener('ended', function onEnd(){
       video.removeEventListener('ended', onEnd);
       clearTimeout(safety);
@@ -774,29 +815,31 @@ onScrollFrame();
     }catch(e){ clearTimeout(safety); reveal(); }
   }
 
+  function showStill(){
+    if(still) still.classList.add('on');
+    setTimeout(function(){
+      if(video){ try{ video.pause(); }catch(e){} video.style.visibility='hidden'; }
+      if(blobURL){ try{ URL.revokeObjectURL(blobURL); }catch(e){} blobURL=null; }
+    }, 420);
+  }
+
   function reveal(){
     if(done) return; done=true;
-    if(video){ try{ video.pause(); }catch(e){} heroFit(); }
+    showStill();
+    heroFit();
     skip.classList.add('pl-out');
     pre.style.opacity='0';
     root.classList.remove('pl-active');
     setTimeout(function(){ pre.style.display='none'; }, 850);
   }
 
+  /* the still is the clip's own last frame, so skipping just cuts to it — no
+     seek, which used to flash whatever frame the seek happened to land on */
   function skipIntro(){
     if(done) return;
     cancelAnimationFrame(rafId);
     pct.classList.add('pl-out');
-    if(video){
-      try{
-        if(video.readyState>=1 && isFinite(video.duration)){
-          var onSeeked=function(){ video.removeEventListener('seeked', onSeeked); reveal(); };
-          video.addEventListener('seeked', onSeeked);
-          video.currentTime=Math.max(0, video.duration-0.04);
-          setTimeout(function(){ video.removeEventListener('seeked', onSeeked); reveal(); }, 600);
-        } else { reveal(); }
-      }catch(e){ reveal(); }
-    } else { reveal(); }
+    reveal();
   }
 
   skip.addEventListener('click', skipIntro);
@@ -812,14 +855,41 @@ onScrollFrame();
   var gateBtn=document.getElementById('plGateBtn');
   var started=false;
 
+  function startAudio(){ document.dispatchEvent(new CustomEvent('pl:play')); }
+
   function startSequence(){
     if(started) return; started=true;
     root.classList.add('pl-started');
-    // dispatched synchronously so the click still counts as user activation for audio
+    /* dispatched synchronously so the press still counts as the user gesture that
+       unblocks the audio element — it is unlocked here and only sounds later,
+       when the clip starts */
     document.dispatchEvent(new CustomEvent('pl:start'));
     t0=performance.now();
     rafId=requestAnimationFrame(tick);
     setTimeout(function(){ if(gate) gate.style.display='none'; }, 600);
+
+    var cfg=window.__hero||{};
+    function markReady(){ clipReady=true; }
+    fetchClip(cfg.clip).then(function(blob){
+      blobURL=URL.createObjectURL(blob);
+      video.addEventListener('loadeddata', markReady, {once:true});
+      video.src=blobURL;
+      video.load();
+      setTimeout(markReady, 4000);           /* never let a quiet decoder hang the bar */
+    }).catch(function(){
+      /* no streaming support, or the fetch failed: let the element load it and
+         drive the bar off its buffered range instead */
+      if(!video.src){ video.src=cfg.clip; video.load(); }
+      var poll=setInterval(function(){
+        try{
+          if(video.buffered&&video.buffered.length&&video.duration)
+            vidFrac=Math.max(vidFrac,Math.min(1,video.buffered.end(video.buffered.length-1)/video.duration));
+          if(video.readyState>=4){ vidFrac=1; markReady(); }
+        }catch(e){}
+        if(clipReady||done) clearInterval(poll);
+      },120);
+      setTimeout(function(){ vidFrac=1; markReady(); }, 20000);
+    });
   }
 
   function onGateKey(e){
@@ -877,7 +947,23 @@ onScrollFrame();
     GESTURES.forEach(function(t){ addEventListener(t,onGesture,{capture:true,passive:true}); });
   }
 
+  /* Two steps, because the press and the sound no longer happen at the same
+     moment. The press unlocks the element — browsers only require that a play()
+     once succeeded from a gesture, so playing and immediately pausing is enough
+     — and the clip starting is what actually brings the track in. */
+  var unlocked=false;
+  function unlock(){
+    var p=audio.play();
+    if(p&&p.then) p.then(function(){
+      if(!wantSound){ audio.pause(); try{ audio.currentTime=0; }catch(e){} }
+      unlocked=true; sync();
+    }).catch(function(){ sync(); });
+    else { audio.pause(); unlocked=true; }
+  }
+  var wantSound=false;
   function start(){
+    wantSound=true;
+    try{ audio.currentTime=0; }catch(e){}
     var p=audio.play();
     if(p&&p.catch) p.catch(function(){ sync(); arm(); });
     if(p&&p.then) p.then(sync);
@@ -926,7 +1012,9 @@ onScrollFrame();
     mo.observe(root,{attributes:true,attributeFilter:['class']});
     // the gate press is the user gesture that unblocks playback; the event is
     // dispatched synchronously from the click handler so activation still counts
-    document.addEventListener('pl:start', start, {once:true});
+    document.addEventListener('pl:start', unlock, {once:true});
+    // ...and the clip starting is what brings the track in
+    document.addEventListener('pl:play', start, {once:true});
   } else { land(true); start(); }
 
   sync();

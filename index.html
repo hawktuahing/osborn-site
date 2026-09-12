@@ -809,19 +809,32 @@ onScrollFrame();
       clearTimeout(safety);
       reveal();
     });
+    /* Three things here used to make the clip start, play a fifth of a second
+       and then jump back to the beginning on iOS:
+
+       - assigning currentTime on an element that has only just been given a
+         source queues a seek that lands *after* playback has already begun, and
+         landing is what threw it back to zero. The element is freshly loaded, so
+         there is nothing to rewind: only touch it if it is actually not at zero.
+       - preload="none" is on the tag so the scanner can't grab the clip before
+         the breakpoint is known, but it also means load() only takes metadata
+         and play() then starts a second, real load. Flip it to auto at the
+         moment the source is handed over instead.
+       - the ease-in used to write playbackRate on every animation frame, ~42
+         times in 700ms, and each write makes the media pipeline re-sync. Eight
+         steps is just as smooth for a rate change.                             */
     try{
-      video.currentTime=0;
+      if(video.currentTime>0.05) video.currentTime=0;
       video.playbackRate=0.35;
       var pr=video.play();
       if(pr && pr.catch) pr.catch(function(){ clearTimeout(safety); reveal(); });
-      var rt0=performance.now();
-      (function rampUp(){
-        var t=(performance.now()-rt0)/700;
-        if(t>=1){ video.playbackRate=1; return; }
-        var e=1-Math.pow(1-t,3);
+      var step=0, STEPS=8;
+      var ramp=setInterval(function(){
+        step++;
+        if(step>=STEPS){ clearInterval(ramp); video.playbackRate=1; return; }
+        var e=1-Math.pow(1-step/STEPS,3);
         video.playbackRate=0.35+e*0.65;
-        requestAnimationFrame(rampUp);
-      })();
+      }, 700/STEPS);
     }catch(e){ clearTimeout(safety); reveal(); }
   }
 
@@ -882,14 +895,17 @@ onScrollFrame();
     function markReady(){ clipReady=true; }
     fetchClip(cfg.clip).then(function(blob){
       blobURL=URL.createObjectURL(blob);
-      video.addEventListener('loadeddata', markReady, {once:true});
+      /* canplay, not loadeddata: waiting for a frame it can actually play means
+         play() never has to kick off a load of its own */
+      video.addEventListener('canplay', markReady, {once:true});
+      video.preload='auto';
       video.src=blobURL;
       video.load();
       setTimeout(markReady, 4000);           /* never let a quiet decoder hang the bar */
     }).catch(function(){
       /* no streaming support, or the fetch failed: let the element load it and
          drive the bar off its buffered range instead */
-      if(!video.src){ video.src=cfg.clip; video.load(); }
+      if(!video.src){ video.preload='auto'; video.src=cfg.clip; video.load(); }
       var poll=setInterval(function(){
         try{
           if(video.buffered&&video.buffered.length&&video.duration)

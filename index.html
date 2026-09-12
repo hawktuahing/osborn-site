@@ -708,7 +708,7 @@ onScrollFrame();
   var still=document.getElementById('heroStill');
   var mq=matchMedia('(max-width:834px)');
   var VIDEO_WEIGHT=0.88;          /* the clip really is ~88% of the bytes */
-  var vidFrac=0, blobURL=null, clipReady=false;
+  var vidFrac=0, clipReady=false;
 
   /* The percentage used to read video.readyState, which is the browser's own
      guess that it could probably play through — it reaches "ready" long before
@@ -716,16 +716,22 @@ onScrollFrame();
      mid-play. Downloading it here means the number is literally bytes received
      over Content-Length, and playback runs from memory with nothing left to
      stall on. If streaming isn't available the old path still works. */
+  /* The bytes are counted and thrown away — reading the body to completion is
+     what puts the clip in the HTTP cache, and the element then plays it from
+     there by its ordinary URL. It used to be handed the bytes as a blob: URL
+     instead, which is where the clip restarting a fifth of a second in came
+     from. Safari's media stack treats blob sources differently and re-prepares
+     them mid-playback; nothing else changed at the moment that started. */
   function fetchClip(url){
-    if(!window.fetch||!window.ReadableStream||!window.URL||!URL.createObjectURL) return Promise.reject();
+    if(!window.fetch||!window.ReadableStream) return Promise.reject();
     return fetch(url).then(function(res){
       if(!res.ok||!res.body) throw new Error('no stream');
       var total=+(res.headers.get('content-length')||0);
-      var got=0, chunks=[], reader=res.body.getReader();
+      var got=0, reader=res.body.getReader();
       return (function pump(){
         return reader.read().then(function(r){
-          if(r.done){ vidFrac=1; return new Blob(chunks,{type:'video/mp4'}); }
-          chunks.push(r.value); got+=r.value.length;
+          if(r.done){ vidFrac=1; return true; }
+          got+=r.value.length;
           if(total) vidFrac=Math.min(1,got/total);
           return pump();
         });
@@ -802,7 +808,14 @@ onScrollFrame();
   function startVideo(){
     if(playing) return; playing=true;
     if(reduce || !video){ reveal(); return; }
-    startAudio();                       /* the soundtrack comes in with the clip */
+    /* the track comes in when the clip is actually running, not when play() is
+       merely called: on iOS starting a second media element at the same instant
+       makes the system re-negotiate the audio session under the one just begun */
+    var sndTimer=setTimeout(startAudio, 900);
+    video.addEventListener('playing', function onGo(){
+      video.removeEventListener('playing', onGo);
+      clearTimeout(sndTimer); startAudio();
+    });
     var safety=setTimeout(reveal, 16000);
     video.addEventListener('ended', function onEnd(){
       video.removeEventListener('ended', onEnd);
@@ -842,7 +855,6 @@ onScrollFrame();
     if(still) still.classList.add('on');
     setTimeout(function(){
       if(video){ try{ video.pause(); }catch(e){} video.style.visibility='hidden'; }
-      if(blobURL){ try{ URL.revokeObjectURL(blobURL); }catch(e){} blobURL=null; }
     }, 420);
   }
 
@@ -893,13 +905,12 @@ onScrollFrame();
 
     var cfg=window.__hero||{};
     function markReady(){ clipReady=true; }
-    fetchClip(cfg.clip).then(function(blob){
-      blobURL=URL.createObjectURL(blob);
+    fetchClip(cfg.clip).then(function(){
       /* canplay, not loadeddata: waiting for a frame it can actually play means
          play() never has to kick off a load of its own */
       video.addEventListener('canplay', markReady, {once:true});
       video.preload='auto';
-      video.src=blobURL;
+      video.src=cfg.clip;                    /* served out of the cache the fetch just filled */
       video.load();
       setTimeout(markReady, 4000);           /* never let a quiet decoder hang the bar */
     }).catch(function(){

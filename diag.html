@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Osborn — intro diagnostic</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0A0A;color:#F4F3F0;font:13px/1.45 ui-monospace,Menlo,monospace;padding:14px calc(14px + env(safe-area-inset-left)) calc(14px + env(safe-area-inset-bottom))}
+h1{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#8f8c81;font-weight:500;margin-bottom:4px}
+p.note{color:#8f8c81;font-size:12px;margin-bottom:12px}
+button{font:inherit;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:#F4F3F0;color:#0A0A0A;border:0;border-radius:3px;padding:14px 18px;width:100%;margin-bottom:12px}
+button.alt{background:transparent;color:#F4F3F0;border:1px solid #444}
+video{width:100%;max-height:34vh;background:#111;display:block;margin-bottom:12px;object-fit:contain}
+#log{white-space:pre-wrap;word-break:break-word;background:#141414;border:1px solid #2a2a2a;border-radius:3px;padding:10px;min-height:200px}
+.hit{color:#ff6b6b;font-weight:700}
+.ok{color:#7ddf85}
+#sum{margin:12px 0;padding:10px;border:1px solid #2a2a2a;border-radius:3px;background:#141414}
+</style></head><body>
+<h1>Intro diagnostic</h1>
+<p class="note">Tap a mode, watch the clip, then screenshot this page (scroll for the whole log). BACK JUMP lines in red are the bug.</p>
+<button id="bDirect">Run — direct URL (current build)</button>
+<button id="bBlob" class="alt">Run — blob URL (old build)</button>
+<video id="v" muted playsinline webkit-playsinline preload="none"></video>
+<div id="sum">idle</div>
+<div id="log"></div>
+<script>
+(function(){
+  var v=document.getElementById('v'), log=document.getElementById('log'), sum=document.getElementById('sum');
+  var t0=0, last=-1, backJumps=0, lines=[];
+  function stamp(){ return String(Math.round(performance.now()-t0)).padStart(5,' ')+'ms'; }
+  function say(s,cls){ lines.push((cls?'<span class="'+cls+'">':'<span>')+stamp()+'  '+s+'</span>'); log.innerHTML=lines.join('\n'); }
+  ['loadstart','loadedmetadata','loadeddata','canplay','canplaythrough','play','playing',
+   'pause','waiting','stalled','suspend','seeking','seeked','emptied','abort','error','ratechange','ended']
+   .forEach(function(n){ v.addEventListener(n,function(){ say(n+'  t='+v.currentTime.toFixed(3)+'  rs='+v.readyState); }); });
+
+  function watch(){
+    if(v.currentTime < last - 0.02){ backJumps++; say('BACK JUMP  '+last.toFixed(3)+' -> '+v.currentTime.toFixed(3),'hit'); }
+    last=v.currentTime;
+    sum.innerHTML = 'playing t='+v.currentTime.toFixed(2)+'s   rate='+v.playbackRate.toFixed(2)+
+      '   back jumps: <b class="'+(backJumps?'hit':'ok')+'">'+backJumps+'</b>';
+    if(!v.ended) requestAnimationFrame(watch);
+  }
+
+  function run(useBlob){
+    lines=[]; backJumps=0; last=-1; t0=performance.now();
+    var url = matchMedia('(max-width:834px)').matches ? 'assets/m/intro.mp4' : 'assets/d/intro.mp4';
+    say('mode: '+(useBlob?'BLOB':'DIRECT')+'   ua: '+navigator.userAgent.slice(0,60));
+    say('fetching '+url);
+    fetch(url).then(function(res){
+      var total=+(res.headers.get('content-length')||0), got=0, chunks=[], rd=res.body.getReader();
+      return (function pump(){
+        return rd.read().then(function(r){
+          if(r.done) return useBlob ? new Blob(chunks,{type:'video/mp4'}) : null;
+          got+=r.value.length; if(useBlob) chunks.push(r.value);
+          return pump();
+        });
+      })();
+    }).then(function(blob){
+      say('downloaded, handing over');
+      v.preload='auto';
+      v.src = blob ? URL.createObjectURL(blob) : url;
+      v.load();
+      setTimeout(function(){
+        v.playbackRate=0.35;
+        var p=v.play();
+        if(p&&p.catch) p.catch(function(e){ say('play() rejected: '+e,'hit'); });
+        var step=0; var iv=setInterval(function(){
+          step++; if(step>=8){ clearInterval(iv); v.playbackRate=1; return; }
+          v.playbackRate=0.35+(1-Math.pow(1-step/8,3))*0.65;
+        },88);
+        requestAnimationFrame(watch);
+      },260);
+    }).catch(function(e){ say('fetch failed: '+e,'hit'); });
+  }
+  document.getElementById('bDirect').addEventListener('click',function(){ run(false); });
+  document.getElementById('bBlob').addEventListener('click',function(){ run(true); });
+})();
+</script></body></html>

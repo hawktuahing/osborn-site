@@ -417,13 +417,18 @@ html.menu-open .sheet{opacity:1;visibility:visible;transform:none}
     <a class="cta" href="#contact">Get in touch</a>
   </div>
 </div><section class="hero in" id="top"><video class="bg" id="heroVideo" muted playsinline webkit-playsinline preload="auto"
-  poster="assets/d/intro-poster.jpg" data-m="assets/m/intro.mp4" data-mposter="assets/m/intro-poster.jpg"><source src="assets/d/intro.mp4" type="video/mp4"></video>
-<script>/* the markup carries the desktop clip so a no-JS load still has one; on a
-   phone swap in the portrait cut before preload gets going, so the 21MB 4K file
-   is never fetched over cellular */
-(function(){var v=document.getElementById('heroVideo');
-if(!matchMedia('(max-width:768px)').matches)return;
-v.poster=v.dataset.mposter;v.innerHTML='';v.src=v.dataset.m;v.load();})();</script>
+  data-d="assets/d/intro.mp4" data-dposter="assets/d/intro-poster.jpg"
+  data-m="assets/m/intro.mp4" data-mposter="assets/m/intro-poster.jpg"></video>
+<noscript><picture><source media="(max-width:768px)" srcset="assets/m/hero-end.jpg"><img class="bg" src="assets/d/intro-poster.jpg" alt=""></picture></noscript>
+<script>/* Neither the clip nor its poster is named in the markup: the preload
+   scanner runs before any script and would start fetching the 21MB 4K file on a
+   phone regardless of what a later script did. Naming the source here, after the
+   breakpoint is known, is what keeps each device to its own media. A no-JS load
+   gets the still frame from the <noscript> above instead. */
+(function(){var v=document.getElementById('heroVideo'),m=matchMedia('(max-width:768px)').matches;
+v.poster=m?v.dataset.mposter:v.dataset.dposter;
+var s=document.createElement('source');s.type='video/mp4';s.src=m?v.dataset.m:v.dataset.d;
+v.appendChild(s);v.load();})();</script>
 <div class="hmeta a">Est. 1997</div><div class="hmeta b">40.7&deg;N / 74.0&deg;W</div>
 <div class="htext"><h1 class="t-left">Visionary.</h1><h1 class="t-right">Founder.</h1>
 <h1 class="t-bot">Force of nature.</h1></div></section><div id="preloader"><div class="pl-pct" id="plPct" aria-hidden="true"><span id="plNum">0</span><span class="pl-sign">%</span></div></div><div id="plGate"><button id="plGateBtn" type="button"><span class="br">&lt;</span>press enter<span class="br">&gt;</span></button></div><div id="plCtrls"><button id="plSound" type="button" aria-label="Pause music" aria-pressed="false"><svg class="snd-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2"/></svg><svg class="snd-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8.5 5.1v13.8L19 12z"/></svg></button><button id="plSkip" type="button" aria-label="Skip intro">Skip</button></div><audio id="plAudio" loop preload="auto" playsinline><source src="assets/shared/track.m4a" type="audio/mp4"><source src="assets/shared/track.mp3" type="audio/mpeg"></audio><section class="sec numbers" id="numbers"><div class="wrap"><div class="numhead"><div class="kick rv" data-i="02">By the numbers</div><div class="rv" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8f8c81">A record of scale</div></div>

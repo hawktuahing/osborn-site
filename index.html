@@ -746,6 +746,9 @@ onScrollFrame();
   function heroFit(){
     var hero=video&&video.parentElement;
     if(!hero) return;
+    /* a phone's toolbar sliding away fires resize mid-intro; resizing a playing
+       video is one of the things that makes iOS rebuild its surface */
+    if(playing && !done) return;
     /* set on the section, not on the clip: the still is a sibling and has to
        settle with it, or the handover would show the frame jump size */
     if(!mq.matches){ hero.style.removeProperty('--vh'); return; }
@@ -840,6 +843,12 @@ onScrollFrame();
       if(video.currentTime>0.05) video.currentTime=0;
       video.playbackRate=0.35;
       var pr=video.play();
+      /* The poster IS the clip's first frame, and iOS re-shows a poster whenever
+         it has to rebuild the element's rendering surface — which is exactly the
+         "it started, then restarted" everyone sees, with currentTime never going
+         backwards because the clip never actually rewound. Once playback is under
+         way the poster has no job left, so take it away. */
+      try{ video.removeAttribute('poster'); }catch(e){}
       if(pr && pr.catch) pr.catch(function(){ clearTimeout(safety); reveal(); });
       var step=0, STEPS=8;
       var ramp=setInterval(function(){

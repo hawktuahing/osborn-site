@@ -748,7 +748,14 @@ onScrollFrame();
     hero.style.setProperty('--vh',(done?fit:h)+'px');
   }
   var done=false, playing=false, shown=0, raw=0, rafId=0;
-  var t0=performance.now();
+  var t0=performance.now(), lastT=t0;
+  /* Floor on how fast the counter may travel 0->100. On a quick connection the
+     clip lands in a few hundred ms, so the number used to jump in two steps and
+     then the screen sat still while the decoder woke up — which reads as a lag,
+     not as loading. Pacing it means the count is legible and the decode happens
+     while it is still climbing. It is a rate cap, not a fake: the number is
+     still never allowed past what has actually arrived. */
+  var MIN_MS=900;
 
   function clamp(v,a,b){return v<a?a:v>b?b:v;}
 
@@ -760,19 +767,22 @@ onScrollFrame();
     /* the last half percent is the decoder getting hold of the bytes: without
        this the bar could reach 100 and fire the intro before the element had a
        source at all */
-    var v = clipReady ? vidFrac : Math.min(vidFrac, 0.995);
+    /* the reserved tail is the decoder opening the file — wide enough that the
+       counter keeps creeping through it instead of parking on one number */
+    var v = clipReady ? vidFrac : Math.min(vidFrac, 0.975);
     raw = imgFrac*(1-VIDEO_WEIGHT) + v*VIDEO_WEIGHT;
   }
 
   function tick(){
     computeRaw();
-    /* smoothed only enough to stop the counter flickering — it is never pushed
-       ahead of, or held back from, what has actually arrived */
-    shown += (raw-shown)*0.12;
-    if(Math.abs(raw-shown)<0.003) shown=raw;
+    var now=performance.now();
+    var dt=Math.min(120, now-lastT); lastT=now;   /* a long frame can't jump the bar */
+    var eased=shown + (raw-shown)*0.12;
+    var capped=shown + dt/MIN_MS;
+    shown=Math.min(raw, Math.max(shown, Math.min(eased, capped)));
     var p=Math.round(clamp(shown,0,1)*100);
     if(num.textContent!=='' + p) num.textContent=p;
-    if(raw>=1 && shown>0.999){ finishLoading(); return; }
+    if(raw>=1 && shown>=0.999){ finishLoading(); return; }
     rafId=requestAnimationFrame(tick);
   }
 
@@ -780,7 +790,7 @@ onScrollFrame();
     cancelAnimationFrame(rafId);
     num.textContent='100';
     pct.classList.add('pl-out');
-    setTimeout(startVideo, 380);
+    setTimeout(startVideo, 260);
   }
 
   /* if the clip cannot play at all, stop waiting on it and rest on the still */
@@ -864,7 +874,7 @@ onScrollFrame();
        unblocks the audio element — it is unlocked here and only sounds later,
        when the clip starts */
     document.dispatchEvent(new CustomEvent('pl:start'));
-    t0=performance.now();
+    t0=lastT=performance.now();
     rafId=requestAnimationFrame(tick);
     setTimeout(function(){ if(gate) gate.style.display='none'; }, 600);
 

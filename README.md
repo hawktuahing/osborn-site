@@ -12,7 +12,9 @@ Static one-page site, no build step. One responsive document plus external media
 Source masters stay out of git (`mobile/`, `*.mov`, loose PNGs are ignored) — only the web-ready files in `assets/` are committed.
 
 ## One document, two layouts
-The desktop rules are the base; everything the phone does differently lives in a single `@media (max-width:768px)` block. Layout-critical JS asks the same question the same way through one `matchMedia("(max-width:768px)")`, so CSS and script can never disagree about which layout is live.
+The desktop rules are the base; everything the phone does differently lives in a single `@media (max-width:834px)` block. Layout-critical JS asks the same question the same way through one `matchMedia("(max-width:834px)")`, so CSS and script can never disagree about which layout is live.
+
+The line sits at 834px so that every iPad in portrait (768, 810, 820, 834) lands on the phone layout too — otherwise tablets split across the two layouts by model. Landscape iPads at 1024 and up get the desktop. Above phone widths the phone layout caps its measure at 720px and turns the extra width into inset, so a tablet gets comfortable line lengths rather than 90-character lines.
 
 Media is picked per breakpoint and each side downloads only its own. The section photos use `<picture>` with a `media` source. The hero `<video>` names **neither** clip nor poster in its markup: the browser's preload scanner runs ahead of any script, so a phone would start pulling the 21MB 4K file no matter what a later script did. An inline script right after the element appends the correct `<source>` once the breakpoint is known; a no-JS load gets a still frame from the `<noscript>` beside it. Verified from the resource list on both sides: a phone requests nothing under `assets/d/`, a desktop nothing under `assets/m/`.
 

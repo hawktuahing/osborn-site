@@ -876,6 +876,11 @@ onScrollFrame();
 
   function reveal(){
     if(done) return; done=true;
+    /* every way out of the intro passes through here, so this is what guarantees
+       the track plays even when the clip never did — Skip, a failed decode, the
+       safety timeout. The event is once:true, so the normal path that already
+       started it on 'playing' is unaffected. */
+    startAudio();
     showStill();
     heroFit();
     skip.classList.add('pl-out');

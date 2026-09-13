@@ -7,3 +7,6 @@ mobile/
 *.mov
 lyagushka.png
 hf_*.png
+
+# audio master
+adjusted length.mp3

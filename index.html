@@ -262,6 +262,12 @@ html.menu-open .burger i:nth-child(3){transform:translateY(-6.5px) rotate(-45deg
   opacity:0;visibility:hidden;transform:translateY(-8px);
   transition:opacity .38s ease,transform .38s cubic-bezier(.2,.7,.2,1),visibility .38s}
 html.menu-open .sheet{opacity:1;visibility:visible;transform:none}
+/* the meter rail is above the sheet (z-index 300 against 95), so with the menu
+   open it sits on top of the nav items. It slides off to the left instead, on
+   the sheet's own 380ms curve so the two move as one gesture. */
+.wavebar{transition:transform .38s cubic-bezier(.2,.7,.2,1)}
+html.menu-open .wavebar{transform:translate(-56px,-50%)}
+@media(prefers-reduced-motion:reduce){.wavebar{transition:none}}
 .sheet nav{display:flex;flex-direction:column;gap:clamp(4px,1.6vh,12px)}
 .sheet nav a{color:var(--darktx);text-decoration:none;font-family:'Space Grotesk',sans-serif;font-weight:300;font-size:clamp(30px,9.5vw,44px);line-height:1.18;letter-spacing:-.01em;display:flex;align-items:baseline;gap:14px}
 .sheet nav a i{font-style:normal;font-size:clamp(9px,2.6vw,11px);letter-spacing:.16em;color:#8f8c81;font-family:'Inter',sans-serif}

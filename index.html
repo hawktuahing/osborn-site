@@ -204,7 +204,7 @@ html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-activ
   backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
   border:1px solid rgba(255,255,255,.26);cursor:pointer;
   transition:background .25s ease,border-color .25s ease,transform .15s ease;
-  animation:gateBreathe 2.8s ease-in-out infinite}
+  position:relative}
 #plGateBtn .br{opacity:.42;padding:0 .7em}
 /* a phone has no Enter key, so a touch-first device is told to tap instead;
    decided in CSS so the right word is there on first paint, no swap flash */
@@ -213,7 +213,14 @@ html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-activ
 #plGateBtn:hover{background:rgba(10,10,10,.46);border-color:rgba(255,255,255,.42)}
 #plGateBtn:active{transform:scale(.97)}
 #plGateBtn:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:3px}
-@keyframes gateBreathe{0%,100%{opacity:.85}50%{opacity:1}}
+/* calm sonar: two hairline rings, one launched every 2s with no gap. Each ring
+   lives 2.66s, so the next is already on its way before the last has faded.
+   The ring grows by moving its inset rather than by scaling, so the line stays
+   a true 1px instead of thickening along the long sides. */
+#plGateBtn::before,#plGateBtn::after{content:"";position:absolute;inset:-1px;border:1px solid #fff;border-radius:2px;
+  opacity:0;pointer-events:none;animation:gateWave 4s cubic-bezier(.37,0,.63,1) infinite}
+#plGateBtn::after{animation-delay:-2s}
+@keyframes gateWave{0%{inset:-1px;opacity:0}8%{opacity:.35}66.5%,100%{inset:-12px -24px;opacity:0}}
 html.pl-started #plGate{opacity:0;pointer-events:none}
 html.pl-active:not(.pl-started) .pl-pct{opacity:0}
 html.pl-active:not(.pl-started) #plCtrls{opacity:0;pointer-events:none}
@@ -417,7 +424,7 @@ html.menu-open .wavebar{transform:translate(-56px,-50%)}
 /* both header items only fit once there is room for them */
 @media(max-width:444px){.status .wrap>div:last-child{display:none}}
 
-@media(prefers-reduced-motion:reduce){#preloader,.pl-pct,#plSkip,#plSound,#plGate,#plCtrls,.status,.nav,.hero h1,.hero .hmeta,.wavebar,.progress,.hero .bg{transition:none!important}#plGateBtn{animation:none}}
+@media(prefers-reduced-motion:reduce){#preloader,.pl-pct,#plSkip,#plSound,#plGate,#plCtrls,.status,.nav,.hero h1,.hero .hmeta,.wavebar,.progress,.hero .bg{transition:none!important}#plGateBtn{animation:none}#plGateBtn::before,#plGateBtn::after{animation:none;display:none}}
 </style><noscript><style>html.pl-active,html.pl-active body{overflow:visible!important;height:auto!important}html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-active .hero .hmeta,html.pl-active .wavebar,html.pl-active .progress{opacity:1!important;pointer-events:auto!important}#preloader{display:none!important}</style></noscript></head><body><div class="progress" id="pg"></div><div class="wavebar" id="wave"></div><div class="status glass"><div class="wrap"><div><span class="dot"></span>Available for select engagements — 2026</div><div>New York · Remote</div></div></div><nav class="nav"><div class="glass"><div class="inner"><div class="brand"><svg class="mark" viewBox="0 0 32 32" fill="none"><rect x="1" y="1" width="30" height="30" rx="6" stroke="#0A0A0A" stroke-width="1.5"/><path d="M10 22V10l6 8 6-8v12" stroke="#0A0A0A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="logo">OSBORN</div></div>
 <ul class="menu">
 <li><a>Works <i class="caret"></i></a><div class="drop glass"><a href="#work">Project Helix <span>&rarr;</span></a><a href="#work">The OZ Initiative <span>&rarr;</span></a><a href="#work">Greenlight <span>&rarr;</span></a></div></li>

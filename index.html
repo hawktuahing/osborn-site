@@ -206,6 +206,10 @@ html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-activ
   transition:background .25s ease,border-color .25s ease,transform .15s ease;
   animation:gateBreathe 2.8s ease-in-out infinite}
 #plGateBtn .br{opacity:.42;padding:0 .7em}
+/* a phone has no Enter key, so a touch-first device is told to tap instead;
+   decided in CSS so the right word is there on first paint, no swap flash */
+#plGateBtn .lbl-tap{display:none}
+@media (hover:none) and (pointer:coarse){#plGateBtn .lbl-key{display:none}#plGateBtn .lbl-tap{display:inline}}
 #plGateBtn:hover{background:rgba(10,10,10,.46);border-color:rgba(255,255,255,.42)}
 #plGateBtn:active{transform:scale(.97)}
 #plGateBtn:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:3px}
@@ -457,7 +461,7 @@ html.menu-open .wavebar{transform:translate(-56px,-50%)}
 })();</script>
 <div class="hmeta a">Est. 1997</div><div class="hmeta b">40.7&deg;N / 74.0&deg;W</div>
 <div class="htext"><h1 class="t-left">Visionary.</h1><h1 class="t-right">Founder.</h1>
-<h1 class="t-bot">Force of nature.</h1></div></section><div id="preloader"><div class="pl-pct" id="plPct" aria-hidden="true"><span id="plNum">0</span><span class="pl-sign">%</span></div></div><div id="plGate"><button id="plGateBtn" type="button"><span class="br">&lt;</span>press enter<span class="br">&gt;</span></button></div><div id="plCtrls"><button id="plSound" type="button" aria-label="Pause music" aria-pressed="false"><svg class="snd-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2"/></svg><svg class="snd-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8.5 5.1v13.8L19 12z"/></svg></button><button id="plSkip" type="button" aria-label="Skip intro">Skip</button></div><audio id="plAudio" loop preload="auto" playsinline><source src="assets/shared/track.m4a" type="audio/mp4"><source src="assets/shared/track.mp3" type="audio/mpeg"></audio><section class="sec numbers" id="numbers"><div class="wrap"><div class="numhead"><div class="kick rv" data-i="02">By the numbers</div><div class="rv" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8f8c81">A record of scale</div></div>
+<h1 class="t-bot">Force of nature.</h1></div></section><div id="preloader"><div class="pl-pct" id="plPct" aria-hidden="true"><span id="plNum">0</span><span class="pl-sign">%</span></div></div><div id="plGate"><button id="plGateBtn" type="button"><span class="br">&lt;</span><span class="lbl-key">press enter</span><span class="lbl-tap">tap to enter</span><span class="br">&gt;</span></button></div><div id="plCtrls"><button id="plSound" type="button" aria-label="Pause music" aria-pressed="false"><svg class="snd-pause" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2"/></svg><svg class="snd-play" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8.5 5.1v13.8L19 12z"/></svg></button><button id="plSkip" type="button" aria-label="Skip intro">Skip</button></div><audio id="plAudio" loop preload="auto" playsinline><source src="assets/shared/track.m4a" type="audio/mp4"><source src="assets/shared/track.mp3" type="audio/mpeg"></audio><section class="sec numbers" id="numbers"><div class="wrap"><div class="numhead"><div class="kick rv" data-i="02">By the numbers</div><div class="rv" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8f8c81">A record of scale</div></div>
 <div class="numgrid">
 <div class="num-item rv"><div class="num">200+</div><p>Patents filed worldwide</p></div>
 <div class="num-item rv d1"><div class="num">$4.2B</div><p>Raised across ventures</p></div>

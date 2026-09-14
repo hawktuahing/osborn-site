@@ -202,17 +202,18 @@ html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-activ
 #plGateBtn{pointer-events:auto;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:#fff;
   padding:19px 34px;border-radius:2px;background:rgba(10,10,10,.3);
   backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
-  border:1px solid rgba(255,255,255,.26);cursor:pointer;
-  transition:background .25s ease,border-color .25s ease,transform .15s ease;
+  border:1px solid transparent;cursor:pointer;
+  outline:1px solid rgba(255,255,255,.26);outline-offset:-1px;
+  transition:background .25s ease,transform .15s ease;
   position:relative;animation:gateKick 2s infinite}
 #plGateBtn .br{opacity:.42;padding:0 .7em}
 /* a phone has no Enter key, so a touch-first device is told to tap instead;
    decided in CSS so the right word is there on first paint, no swap flash */
 #plGateBtn .lbl-tap{display:none}
 @media (hover:none) and (pointer:coarse){#plGateBtn .lbl-key{display:none}#plGateBtn .lbl-tap{display:inline}}
-#plGateBtn:hover{background:rgba(10,10,10,.46);border-color:rgba(255,255,255,.42)}
+#plGateBtn:hover{background:rgba(10,10,10,.46)}
 #plGateBtn:active{transform:scale(.97)}
-#plGateBtn:focus-visible{outline:1px solid rgba(255,255,255,.8);outline-offset:3px}
+#plGateBtn:focus-visible{background:rgba(10,10,10,.46)}
 /* calm sonar: two hairline rings, one launched every 2s with no gap. Each ring
    lives 2.66s, so the next is already on its way before the last has faded.
    The ring grows by moving its inset rather than by scaling, so the line stays
@@ -221,15 +222,16 @@ html.pl-active .status,html.pl-active .nav,html.pl-active .hero h1,html.pl-activ
   opacity:0;pointer-events:none;animation:gateWave 4s cubic-bezier(.37,0,.63,1) infinite}
 #plGateBtn::after{animation-delay:-2s}
 @keyframes gateWave{0%{inset:-1px;opacity:0}8%{opacity:.35}66.5%,100%{inset:-24px;opacity:0}}
-/* each ring leaves from the button's own outline, so that outline takes the hit:
-   a hard 100ms pop and flash as the ring departs, then a soft settle. Same 2s
-   period and zero delay as the rings, so every launch lands on a kick. Uses the
-   individual scale property rather than transform so :active's press-scale
-   still composes on top of it. */
+/* each ring leaves from the button's white contour, so the contour takes the hit
+   and only the contour: it is drawn as an outline sitting exactly where the
+   border used to be (the border itself is transparent and keeps the size), so
+   it can be knocked 4px outward and flash while the button stays put. Hard
+   ~100ms punch as the ring departs, soft settle back onto the edge. Same 2s
+   period and zero delay as the rings, so every launch lands on a kick. */
 @keyframes gateKick{
-  0%{scale:1;border-color:rgba(255,255,255,.26);animation-timing-function:cubic-bezier(.2,.9,.3,1)}
-  5%{scale:1.04;border-color:rgba(255,255,255,.9);animation-timing-function:cubic-bezier(.3,0,.2,1)}
-  40%,100%{scale:1;border-color:rgba(255,255,255,.26)}
+  0%{outline-offset:-1px;outline-color:rgba(255,255,255,.26);animation-timing-function:cubic-bezier(.2,.9,.3,1)}
+  5%{outline-offset:4px;outline-color:rgba(255,255,255,.9);animation-timing-function:cubic-bezier(.3,0,.2,1)}
+  40%,100%{outline-offset:-1px;outline-color:rgba(255,255,255,.26)}
 }
 html.pl-started #plGate{opacity:0;pointer-events:none}
 html.pl-active:not(.pl-started) .pl-pct{opacity:0}
